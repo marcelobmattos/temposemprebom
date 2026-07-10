@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estação Comunitária Ambiental · Curitiba/PR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0e1b2b;
+    --bg-panel: #16263d;
+    --bg-panel-2: #1c3049;
+    --ink: #eaf0f6;
+    --ink-muted: #93a5bc;
+    --good: #4fb88b;
+    --moderate: #e8a33d;
+    --bad: #d9534f;
+    --sky: #7ec8e3;
+    --line: rgba(234, 240, 246, 0.1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* subtle ambient sky gradient behind hero */
+  .sky {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 640px;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% -10%, rgba(126,200,227,0.16), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 0%, rgba(79,184,139,0.10), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  a { color: var(--sky); }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0 0;
+  }
+
+  .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 4px rgba(79,184,139,0.18);
+  }
+
+  .top nav a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    font-size: 14px;
+    margin-left: 24px;
+  }
+  .top nav a:hover { color: var(--ink); }
+
+  /* HERO */
+  .hero {
+    padding: 72px 0 40px;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sky);
+    margin: 0 0 18px;
+  }
+
+  h1.headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    max-width: 720px;
+  }
+
+  #condTag {
+    padding: 2px 4px;
+    border-radius: 6px;
+  }
+
+  .sub {
+    color: var(--ink-muted);
+    font-size: 17px;
+    max-width: 560px;
+    margin: 0 0 44px;
+  }
+
+  /* INSTRUMENT PANEL */
+  .panel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .gauge {
+    background: var(--bg-panel);
+    padding: 26px 24px 22px;
+  }
+
+  .gauge .label {
+    font-size: 13px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .gauge .status-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+
+  .gauge .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 42px;
+    letter-spacing: -0.02em;
+  }
+
+  .gauge .unit {
+    font-size: 18px;
+    color: var(--ink-muted);
+    margin-left: 4px;
+  }
+
+  .track {
+    margin-top: 16px;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.07);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .track .fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 1.1s cubic-bezier(.16,.8,.3,1);
+  }
+
+  .updated {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 18px;
+  }
+
+  /* ADVISORY */
+  .section {
+    padding: 76px 0 8px;
+    border-top: 1px solid var(--line);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+
+  .section-head .num {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--sky);
+    font-size: 13px;
+  }
+
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 60px;
+  }
+
+  .card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px;
+  }
+
+  .card .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 14px;
+  }
+
+  .card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    margin: 0 0 8px;
+  }
+
+  .card p {
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    margin: 0;
+  }
+
+  /* ABOUT */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    padding-bottom: 60px;
+  }
+
+  .about-grid p {
+    color: var(--ink-muted);
+    font-size: 15.5px;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .step {
+    display: flex;
+    gap: 16px;
+  }
+
+  .step .n {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--sky);
+    font-size: 13px;
+    padding-top: 2px;
+  }
+
+  .step h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    margin: 0 0 4px;
+  }
+
+  .step p {
+    color: var(--ink-muted);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 36px 0 48px;
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer .fmono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+
+  @media (max-width: 760px) {
+    .panel, .cards { grid-template-columns: 1fr; }
+    .about-grid { grid-template-columns: 1fr; }
+    .top nav { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto !important; }
+  }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--sky);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="dot"></span> ESTAÇÃO COMUNITÁRIA</div>
+    <nav>
+      <a href="#agora">Agora</a>
+      <a href="#sobre">Sobre</a>
+      <a href="#como-funciona">Como funciona</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <p class="eyebrow">CURITIBA/PR · ATUALIZADO A CADA 15 MIN</p>
+    <h1 class="headline"><span id="condTag">Ar bom.</span> Aproveite o dia com tranquilidade.</h1>
+    <p class="sub">Dados de temperatura, umidade e qualidade do ar coletados por sensores próprios e traduzidos em orientações práticas para a comunidade — gratuito e aberto a todos.</p>
+
+    <div class="panel" id="agora">
+      <div class="gauge">
+        <div class="label">Temperatura <span class="status-chip" id="tempChip">Agradável</span></div>
+        <div class="value" id="tempVal">24<span class="unit">°C</span></div>
+        <div class="track"><div class="fill" id="tempFill"></div></div>
+      </div>
+      <div class="gauge">
+        <div class="label">Umidade <span class="status-chip" id="humChip">Normal</span></div>
+        <div class="value" id="humVal">58<span class="unit">%</span></div>
+        <div class="track"><div class="fill" id="humFill"></div></div>
+      </div>
+      <div class="gauge">
+        <div class="label">Qualidade do ar <span class="status-chip" id="airChip">Boa</span></div>
+        <div class="value" id="airVal">42<span class="unit">AQI</span></div>
+        <div class="track"><div class="fill" id="airFill"></div></div>
+      </div>
+    </div>
+    <p class="updated" id="updatedAt">última leitura: --:--</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>O que fazer agora</h2>
+    </div>
+    <div class="cards" id="adviceCards"></div>
+  </section>
+
+  <section class="section" id="sobre">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Sobre a estação</h2>
+    </div>
+    <div class="about-grid">
+      <div>
+        <p>Em municípios de menor porte, a informação ambiental hiperlocal costuma ser escassa: aplicativos de previsão do tempo trazem dados de estações distantes, e a qualidade do ar quase nunca é medida fora das grandes capitais. Em 2024, a fumaça de incêndios florestais chegou a cobrir cerca de 60% do território brasileiro, afetando até cidades longe dos focos — um lembrete de que esse tipo de dado importa em qualquer lugar do país.</p>
+        <p>Esta estação foi desenvolvida como Atividade Extensionista II do curso de Tecnologia em Automação Industrial, com sensores de baixo custo (DHT22 e MQ-135) conectados a um Raspberry Pi. Os dados são públicos, gratuitos e atualizados continuamente — e, mais importante, traduzidos em recomendações práticas de saúde, não apenas números.</p>
+      </div>
+      <div class="fmono" style="font-size:13px; color:var(--ink-muted); line-height:1.9;">
+        <div>PROJETO — Estação Comunitária de Monitoramento Ambiental</div>
+        <div>CURSO — Tecnologia em Automação Industrial</div>
+        <div>EQUIPE — Marcelo Barreto de Mattos · Alan Kristian dos Santos · Rodrigo Sobrenome</div>
+        <div>LOCAL — Curitiba/PR</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="como-funciona" style="padding-bottom:20px;">
+    <div class="section-head">
+      <span class="num">03</span>
+      <h2>Como funciona</h2>
+    </div>
+    <div class="steps" style="padding-bottom:70px;">
+      <div class="step">
+        <span class="n">01</span>
+        <div>
+          <h4>Sensores coletam os dados</h4>
+          <p>DHT22 mede temperatura e umidade; MQ-135 mede o índice geral de qualidade do ar, a cada poucos minutos.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="n">02</span>
+        <div>
+          <h4>Raspberry Pi processa e envia</h4>
+          <p>Um script em Python lê os sensores e envia as leituras para um banco de dados na nuvem.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="n">03</span>
+        <div>
+          <h4>O site traduz em orientação</h4>
+          <p>Esta página lê os dados mais recentes e gera automaticamente os avisos de saúde acima, sem custo para a comunidade.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="fmono">© 2026 · Atividade Extensionista II · UNINTER</div>
+    <div class="fmono"><a href="#">github.com/[usuario]/estacao-comunitaria</a></div>
+  </footer>
+</div>
+
+<script>
+  // ---------------------------------------------------------------
+  // DADOS: por enquanto simulados. Depois, troque getReadings() por
+  // uma leitura real do Firebase Realtime Database, por exemplo:
+  //
+  //   const snap = await firebase.database().ref('leituras/atual').get();
+  //   return snap.val();
+  // ---------------------------------------------------------------
+  function getReadings() {
+    return {
+      temp: 24,       // °C
+      hum: 58,        // %
+      aqi: 42,        // índice 0-200 (referência simplificada)
+      updatedAt: new Date()
+    };
+  }
+
+  function classify(value, ranges) {
+    // ranges: [{max, key}] em ordem crescente
+    for (const r of ranges) if (value <= r.max) return r.key;
+    return ranges[ranges.length - 1].key;
+  }
+
+  const STATUS = {
+    good:     { label: 'Boa',        chipBg: 'rgba(79,184,139,0.15)', chipColor: 'var(--good)', fill: 'var(--good)' },
+    moderate: { label: 'Moderada',   chipBg: 'rgba(232,163,61,0.15)', chipColor: 'var(--moderate)', fill: 'var(--moderate)' },
+    bad:      { label: 'Ruim',       chipBg: 'rgba(217,83,79,0.15)',  chipColor: 'var(--bad)', fill: 'var(--bad)' },
+  };
+
+  function applyChip(el, status, labelOverride) {
+    el.textContent = labelOverride || STATUS[status].label;
+    el.style.background = STATUS[status].chipBg;
+    el.style.color = STATUS[status].chipColor;
+  }
+
+  function render() {
+    const d = getReadings();
+
+    // classificações simples (ajustar limiares após calibração de campo)
+    const tempStatus = classify(d.temp, [{max:12,key:'bad'},{max:30,key:'good'},{max:999,key:'bad'}]);
+    const humStatus   = classify(d.hum,  [{max:29,key:'moderate'},{max:70,key:'good'},{max:100,key:'moderate'}]);
+    const airStatus   = classify(d.aqi,  [{max:50,key:'good'},{max:100,key:'moderate'},{max:999,key:'bad'}]);
+
+    document.getElementById('tempVal').innerHTML = d.temp + '<span class="unit">°C</span>';
+    document.getElementById('humVal').innerHTML  = d.hum  + '<span class="unit">%</span>';
+    document.getElementById('airVal').innerHTML  = d.aqi  + '<span class="unit">AQI</span>';
+
+    applyChip(document.getElementById('tempChip'), tempStatus, tempStatus==='good' ? 'Agradável' : (d.temp>30?'Muito quente':'Muito frio'));
+    applyChip(document.getElementById('humChip'), humStatus, humStatus==='good' ? 'Normal' : 'Atenção');
+    applyChip(document.getElementById('airChip'), airStatus);
+
+    // barras (larguras ilustrativas)
+    const tempPct = Math.min(100, Math.max(0, ((d.temp + 5) / 45) * 100));
+    const humPct  = Math.min(100, d.hum);
+    const airPct  = Math.min(100, (d.aqi / 150) * 100);
+
+    const tf = document.getElementById('tempFill'); tf.style.background = STATUS[tempStatus].fill;
+    const hf = document.getElementById('humFill');  hf.style.background = STATUS[humStatus].fill;
+    const af = document.getElementById('airFill');  af.style.background = STATUS[airStatus].fill;
+    requestAnimationFrame(() => {
+      tf.style.width = tempPct + '%';
+      hf.style.width = humPct + '%';
+      af.style.width = airPct + '%';
+    });
+
+    document.getElementById('updatedAt').textContent =
+      'última leitura: ' + d.updatedAt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+    // headline dinâmica
+    const tag = document.getElementById('condTag');
+    const worst = [tempStatus, humStatus, airStatus].includes('bad') ? 'bad'
+                : [tempStatus, humStatus, airStatus].includes('moderate') ? 'moderate' : 'good';
+    const headlineText = {
+      good: 'Ar bom.',
+      moderate: 'Atenção moderada.',
+      bad: 'Cuidados necessários.'
+    }[worst];
+    tag.textContent = headlineText;
+    tag.style.color = STATUS[worst].chipColor;
+
+    renderAdvice(d, tempStatus, humStatus, airStatus);
+  }
+
+  function renderAdvice(d, tempStatus, humStatus, airStatus) {
+    const cards = [];
+
+    if (tempStatus === 'bad' && d.temp > 30) {
+      cards.push({ tag: 'Calor', status: 'bad', title: 'Hidrate-se com frequência',
+        text: 'Beba água mesmo sem sede e evite atividades físicas ao ar livre entre 10h e 16h. Redobre a atenção com crianças, idosos e gestantes.' });
+    } else if (tempStatus === 'bad') {
+      cards.push({ tag: 'Frio', status: 'bad', title: 'Cuide da pressão arterial',
+        text: 'O frio intenso pode elevar a pressão arterial. Agasalhe-se, mesmo em casa, e monitore a pressão com mais frequência se for hipertenso.' });
+    } else {
+      cards.push({ tag: 'Temperatura', status: 'good', title: 'Condições agradáveis',
+        text: 'Sem recomendações especiais no momento. Bom dia para atividades ao ar livre.' });
+    }
+
+    if (humStatus !== 'good') {
+      cards.push({ tag: 'Umidade', status: 'moderate', title: 'Ar seco: cuidado extra',
+        text: 'Aumente a ingestão de água, evite ambientes muito fechados e, se possível, use umidificador — sobretudo com crianças e idosos.' });
+    } else {
+      cards.push({ tag: 'Umidade', status: 'good', title: 'Umidade equilibrada',
+        text: 'Níveis dentro da faixa considerada confortável para a maioria das pessoas.' });
+    }
+
+    if (airStatus === 'bad') {
+      cards.push({ tag: 'Ar', status: 'bad', title: 'Evite exercícios ao ar livre',
+        text: 'Mantenha janelas fechadas em horários de pico e considere o uso de máscara (PFF2/N95) se fizer parte de grupo sensível.' });
+    } else if (airStatus === 'moderate') {
+      cards.push({ tag: 'Ar', status: 'moderate', title: 'Qualidade do ar moderada',
+        text: 'Pessoas sensíveis (asmáticos, idosos, crianças) devem reduzir esforço físico prolongado ao ar livre.' });
+    } else {
+      cards.push({ tag: 'Ar', status: 'good', title: 'Boa qualidade do ar',
+        text: 'Condições favoráveis para atividades ao ar livre.' });
+    }
+
+    const wrap = document.getElementById('adviceCards');
+    wrap.innerHTML = cards.map(c => `
+      <div class="card">
+        <span class="tag" style="background:${STATUS[c.status].chipBg}; color:${STATUS[c.status].chipColor}">${c.tag}</span>
+        <h3>${c.title}</h3>
+        <p>${c.text}</p>
+      </div>
+    `).join('');
+  }
+
+  render();
+</script>
+
+</body>
+</html>
