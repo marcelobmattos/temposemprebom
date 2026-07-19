@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
   :root {
     --bg-deep: #0e1b2b;
@@ -242,6 +244,35 @@
     color: var(--ink-muted);
   }
 
+  .chart-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .reset-zoom-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--sky);
+    background: rgba(126,200,227,0.1);
+    border: 1px solid rgba(126,200,227,0.25);
+    border-radius: 20px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .reset-zoom-btn:hover {
+    background: rgba(126,200,227,0.2);
+  }
+
+  .chart-hint {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: 12px;
+    text-align: center;
+  }
+
   .chart-wrap {
     position: relative;
     height: 260px;
@@ -416,16 +447,20 @@
   <section class="section">
     <div class="section-head">
       <span class="num">01</span>
-      <h2>Histórico de temperatura</h2>
+      <h2>Histórico de temperatura e umidade</h2>
     </div>
     <div class="chart-card">
       <div class="chart-head">
         <span class="chart-title">Últimas leituras</span>
-        <span class="chart-sub" id="chartSub">carregando...</span>
+        <div class="chart-actions">
+          <span class="chart-sub" id="chartSub">carregando...</span>
+          <button class="reset-zoom-btn" id="resetZoomBtn" type="button">Resetar zoom</button>
+        </div>
       </div>
       <div class="chart-wrap">
         <canvas id="tempChart"></canvas>
       </div>
+      <p class="chart-hint">clique nos itens da legenda para mostrar/ocultar · role o mouse para dar zoom · arraste para navegar</p>
     </div>
   </section>
 
@@ -561,6 +596,7 @@
       return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     });
     const temps = history.map(item => item.temperatura);
+    const hums = history.map(item => (typeof item.umidade === 'number' ? item.umidade : null));
 
     sub.textContent = `últimos ${history.length} ponto${history.length > 1 ? 's' : ''}`;
 
@@ -570,33 +606,64 @@
 
     const ctx = document.getElementById('tempChart').getContext('2d');
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-    gradient.addColorStop(0, 'rgba(126,200,227,0.35)');
-    gradient.addColorStop(1, 'rgba(126,200,227,0)');
+    const gradientTemp = ctx.createLinearGradient(0, 0, 0, 260);
+    gradientTemp.addColorStop(0, 'rgba(126,200,227,0.30)');
+    gradientTemp.addColorStop(1, 'rgba(126,200,227,0)');
+
+    const gradientHum = ctx.createLinearGradient(0, 0, 0, 260);
+    gradientHum.addColorStop(0, 'rgba(79,184,139,0.22)');
+    gradientHum.addColorStop(1, 'rgba(79,184,139,0)');
 
     const config = {
       type: 'line',
       data: {
         labels,
-        datasets: [{
-          label: 'Temperatura (°C)',
-          data: temps,
-          borderColor: '#7ec8e3',
-          backgroundColor: gradient,
-          fill: true,
-          tension: 0.35,
-          pointRadius: pointRadius,
-          pointBackgroundColor: '#7ec8e3',
-          pointHoverRadius: 5,
-          borderWidth: 2,
-        }],
+        datasets: [
+          {
+            label: 'Temperatura (°C)',
+            data: temps,
+            borderColor: '#7ec8e3',
+            backgroundColor: gradientTemp,
+            fill: true,
+            tension: 0.35,
+            pointRadius: pointRadius,
+            pointBackgroundColor: '#7ec8e3',
+            pointHoverRadius: 5,
+            borderWidth: 2,
+            yAxisID: 'yTemp',
+          },
+          {
+            label: 'Umidade (%)',
+            data: hums,
+            borderColor: '#4fb88b',
+            backgroundColor: gradientHum,
+            fill: true,
+            tension: 0.35,
+            pointRadius: pointRadius,
+            pointBackgroundColor: '#4fb88b',
+            pointHoverRadius: 5,
+            borderWidth: 2,
+            yAxisID: 'yHum',
+          },
+        ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              color: '#93a5bc',
+              font: { family: 'IBM Plex Mono', size: 11 },
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxHeight: 7,
+            },
+          },
           tooltip: {
             backgroundColor: '#16263d',
             titleColor: '#eaf0f6',
@@ -604,7 +671,24 @@
             borderColor: 'rgba(234,240,246,0.1)',
             borderWidth: 1,
             callbacks: {
-              label: (item) => `${item.parsed.y.toFixed(1)}°C`,
+              label: (item) => {
+                const unidade = item.dataset.yAxisID === 'yTemp' ? '°C' : '%';
+                return `${item.dataset.label}: ${item.parsed.y.toFixed(1)}${unidade}`;
+              },
+            },
+          },
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'x',
+            },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x',
+            },
+            limits: {
+              x: { minRange: 3 },
             },
           },
         },
@@ -613,9 +697,15 @@
             ticks: { color: '#93a5bc', font: { family: 'IBM Plex Mono', size: 10.5 }, maxTicksLimit: 8 },
             grid: { display: false },
           },
-          y: {
-            ticks: { color: '#93a5bc', font: { family: 'IBM Plex Mono', size: 10.5 }, callback: (v) => v + '°C' },
+          yTemp: {
+            position: 'left',
+            ticks: { color: '#7ec8e3', font: { family: 'IBM Plex Mono', size: 10.5 }, callback: (v) => v + '°C' },
             grid: { color: 'rgba(234,240,246,0.06)' },
+          },
+          yHum: {
+            position: 'right',
+            ticks: { color: '#4fb88b', font: { family: 'IBM Plex Mono', size: 10.5 }, callback: (v) => v + '%' },
+            grid: { display: false },
           },
         },
       },
@@ -626,6 +716,12 @@
       tempChartInstance.update();
     } else {
       tempChartInstance = new Chart(ctx, config);
+      const resetBtn = document.getElementById('resetZoomBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          if (tempChartInstance) tempChartInstance.resetZoom();
+        });
+      }
     }
   }
 
