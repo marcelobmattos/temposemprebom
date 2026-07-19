@@ -392,7 +392,7 @@
       <div class="fmono" style="font-size:13px; color:var(--ink-muted); line-height:1.9;">
         <div>PROJETO — Estação Comunitária de Monitoramento Ambiental</div>
         <div>CURSO — Tecnologia em Automação Industrial</div>
-        <div>EQUIPE — Marcelo Barreto de Mattos · Alan Kristian dos Santos · Rodrigo Sobrenome</div>
+        <div>EQUIPE — Marcelo Barreto de Mattos · Alan Kristian dos Santos · Rodrigo Ribeiro dos Santos</div>
         <div>LOCAL — Curitiba/PR</div>
       </div>
     </div>
@@ -436,19 +436,31 @@
 
 <script>
   // ---------------------------------------------------------------
-  // DADOS: por enquanto simulados. Depois, troque getReadings() por
-  // uma leitura real do Firebase Realtime Database, por exemplo:
-  //
-  //   const snap = await firebase.database().ref('leituras/atual').get();
-  //   return snap.val();
+  // Lê a leitura mais recente do Firebase Realtime Database.
+  // O Raspberry Pi grava em /leituras/atual.json (veja enviar_firebase.py).
+  // Por enquanto só o DHT22 está instalado, então "aqi" pode não existir
+  // ainda — o código abaixo trata esse caso.
   // ---------------------------------------------------------------
-  function getReadings() {
-    return {
-      temp: 24,       // °C
-      hum: 58,        // %
-      aqi: 42,        // índice 0-200 (referência simplificada)
-      updatedAt: new Date()
-    };
+  const FIREBASE_URL = "https://estacao-comunitaria-default-rtdb.firebaseio.com";
+
+  async function getReadings() {
+    try {
+      const resp = await fetch(`${FIREBASE_URL}/leituras/atual.json`, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('Falha ao consultar o Firebase');
+      const data = await resp.json();
+      if (!data) throw new Error('Nenhuma leitura disponível ainda');
+
+      return {
+        temp: typeof data.temperatura === 'number' ? data.temperatura : null,
+        hum: typeof data.umidade === 'number' ? data.umidade : null,
+        aqi: typeof data.aqi === 'number' ? data.aqi : null, // ainda não instalado
+        updatedAt: data.timestamp ? new Date(data.timestamp * 1000) : new Date(),
+        offline: false,
+      };
+    } catch (erro) {
+      console.error('Erro ao buscar leituras do Firebase:', erro);
+      return { temp: null, hum: null, aqi: null, updatedAt: new Date(), offline: true };
+    }
   }
 
   function classify(value, ranges) {
@@ -461,6 +473,7 @@
     good:     { label: 'Boa',        chipBg: 'rgba(79,184,139,0.15)', chipColor: 'var(--good)', fill: 'var(--good)' },
     moderate: { label: 'Moderada',   chipBg: 'rgba(232,163,61,0.15)', chipColor: 'var(--moderate)', fill: 'var(--moderate)' },
     bad:      { label: 'Ruim',       chipBg: 'rgba(217,83,79,0.15)',  chipColor: 'var(--bad)', fill: 'var(--bad)' },
+    unknown:  { label: 'Sem dado',   chipBg: 'rgba(147,165,188,0.15)', chipColor: 'var(--ink-muted)', fill: 'var(--ink-muted)' },
   };
 
   function applyChip(el, status, labelOverride) {
@@ -469,26 +482,36 @@
     el.style.color = STATUS[status].chipColor;
   }
 
-  function render() {
-    const d = getReadings();
+  function classifyOrUnknown(value, ranges) {
+    if (value === null || value === undefined) return 'unknown';
+    return classify(value, ranges);
+  }
 
-    // classificações simples (ajustar limiares após calibração de campo)
-    const tempStatus = classify(d.temp, [{max:12,key:'bad'},{max:30,key:'good'},{max:999,key:'bad'}]);
-    const humStatus   = classify(d.hum,  [{max:29,key:'moderate'},{max:70,key:'good'},{max:100,key:'moderate'}]);
-    const airStatus   = classify(d.aqi,  [{max:50,key:'good'},{max:100,key:'moderate'},{max:999,key:'bad'}]);
+  async function render() {
+    const d = await getReadings();
 
-    document.getElementById('tempVal').innerHTML = d.temp + '<span class="unit">°C</span>';
-    document.getElementById('humVal').innerHTML  = d.hum  + '<span class="unit">%</span>';
-    document.getElementById('airVal').innerHTML  = d.aqi  + '<span class="unit">AQI</span>';
+    if (d.offline) {
+      document.getElementById('updatedAt').textContent = 'não foi possível conectar ao banco de dados agora — tentando novamente...';
+      setTimeout(render, 15000);
+      return;
+    }
 
-    applyChip(document.getElementById('tempChip'), tempStatus, tempStatus==='good' ? 'Agradável' : (d.temp>30?'Muito quente':'Muito frio'));
-    applyChip(document.getElementById('humChip'), humStatus, humStatus==='good' ? 'Normal' : 'Atenção');
-    applyChip(document.getElementById('airChip'), airStatus);
+    const tempStatus = classifyOrUnknown(d.temp, [{max:12,key:'bad'},{max:30,key:'good'},{max:999,key:'bad'}]);
+    const humStatus   = classifyOrUnknown(d.hum,  [{max:29,key:'moderate'},{max:70,key:'good'},{max:100,key:'moderate'}]);
+    const airStatus   = classifyOrUnknown(d.aqi,  [{max:50,key:'good'},{max:100,key:'moderate'},{max:999,key:'bad'}]);
+
+    document.getElementById('tempVal').innerHTML = (d.temp !== null ? d.temp : '—') + '<span class="unit">°C</span>';
+    document.getElementById('humVal').innerHTML  = (d.hum  !== null ? d.hum  : '—') + '<span class="unit">%</span>';
+    document.getElementById('airVal').innerHTML  = (d.aqi  !== null ? d.aqi  : '—') + '<span class="unit">AQI</span>';
+
+    applyChip(document.getElementById('tempChip'), tempStatus, tempStatus==='good' ? 'Agradável' : tempStatus==='unknown' ? 'Sem dado' : (d.temp>30?'Muito quente':'Muito frio'));
+    applyChip(document.getElementById('humChip'), humStatus, humStatus==='good' ? 'Normal' : humStatus==='unknown' ? 'Sem dado' : 'Atenção');
+    applyChip(document.getElementById('airChip'), airStatus, airStatus==='unknown' ? 'Sensor pendente' : undefined);
 
     // barras (larguras ilustrativas)
-    const tempPct = Math.min(100, Math.max(0, ((d.temp + 5) / 45) * 100));
-    const humPct  = Math.min(100, d.hum);
-    const airPct  = Math.min(100, (d.aqi / 150) * 100);
+    const tempPct = d.temp !== null ? Math.min(100, Math.max(0, ((d.temp + 5) / 45) * 100)) : 0;
+    const humPct  = d.hum  !== null ? Math.min(100, d.hum) : 0;
+    const airPct  = d.aqi  !== null ? Math.min(100, (d.aqi / 150) * 100) : 0;
 
     const tf = document.getElementById('tempFill'); tf.style.background = STATUS[tempStatus].fill;
     const hf = document.getElementById('humFill');  hf.style.background = STATUS[humStatus].fill;
@@ -504,23 +527,32 @@
 
     // headline dinâmica
     const tag = document.getElementById('condTag');
-    const worst = [tempStatus, humStatus, airStatus].includes('bad') ? 'bad'
-                : [tempStatus, humStatus, airStatus].includes('moderate') ? 'moderate' : 'good';
+    const knownStatuses = [tempStatus, humStatus, airStatus].filter(s => s !== 'unknown');
+    const worst = knownStatuses.includes('bad') ? 'bad'
+                : knownStatuses.includes('moderate') ? 'moderate'
+                : knownStatuses.length ? 'good' : 'unknown';
     const headlineText = {
       good: 'Ar bom.',
       moderate: 'Atenção moderada.',
-      bad: 'Cuidados necessários.'
+      bad: 'Cuidados necessários.',
+      unknown: 'Aguardando dados.'
     }[worst];
     tag.textContent = headlineText;
     tag.style.color = STATUS[worst].chipColor;
 
     renderAdvice(d, tempStatus, humStatus, airStatus);
+
+    // atualiza de novo em 60s (mesmo intervalo do envio do Raspberry Pi)
+    setTimeout(render, 60000);
   }
 
   function renderAdvice(d, tempStatus, humStatus, airStatus) {
     const cards = [];
 
-    if (tempStatus === 'bad' && d.temp > 30) {
+    if (tempStatus === 'unknown') {
+      cards.push({ tag: 'Temperatura', status: 'unknown', title: 'Aguardando primeira leitura',
+        text: 'Assim que o Raspberry Pi enviar dados, as recomendações aparecem aqui automaticamente.' });
+    } else if (tempStatus === 'bad' && d.temp > 30) {
       cards.push({ tag: 'Calor', status: 'bad', title: 'Hidrate-se com frequência',
         text: 'Beba água mesmo sem sede e evite atividades físicas ao ar livre entre 10h e 16h. Redobre a atenção com crianças, idosos e gestantes.' });
     } else if (tempStatus === 'bad') {
@@ -531,7 +563,10 @@
         text: 'Sem recomendações especiais no momento. Bom dia para atividades ao ar livre.' });
     }
 
-    if (humStatus !== 'good') {
+    if (humStatus === 'unknown') {
+      cards.push({ tag: 'Umidade', status: 'unknown', title: 'Aguardando primeira leitura',
+        text: 'O sensor DHT22 mede umidade junto com a temperatura — assim que houver dado, aparece aqui.' });
+    } else if (humStatus !== 'good') {
       cards.push({ tag: 'Umidade', status: 'moderate', title: 'Ar seco: cuidado extra',
         text: 'Aumente a ingestão de água, evite ambientes muito fechados e, se possível, use umidificador — sobretudo com crianças e idosos.' });
     } else {
@@ -539,7 +574,10 @@
         text: 'Níveis dentro da faixa considerada confortável para a maioria das pessoas.' });
     }
 
-    if (airStatus === 'bad') {
+    if (airStatus === 'unknown') {
+      cards.push({ tag: 'Ar', status: 'unknown', title: 'Sensor de qualidade do ar pendente',
+        text: 'O MQ-135 ainda está sendo instalado. Assim que estiver ativo, os avisos de qualidade do ar aparecem aqui.' });
+    } else if (airStatus === 'bad') {
       cards.push({ tag: 'Ar', status: 'bad', title: 'Evite exercícios ao ar livre',
         text: 'Mantenha janelas fechadas em horários de pico e considere o uso de máscara (PFF2/N95) se fizer parte de grupo sensível.' });
     } else if (airStatus === 'moderate') {
@@ -556,6 +594,7 @@
         <span class="tag" style="background:${STATUS[c.status].chipBg}; color:${STATUS[c.status].chipColor}">${c.tag}</span>
         <h3>${c.title}</h3>
         <p>${c.text}</p>
+
       </div>
     `).join('');
   }
