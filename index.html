@@ -476,7 +476,7 @@
   <section class="section">
     <div class="section-head">
       <span class="num">01</span>
-      <h2>Histórico de temperatura e umidade</h2>
+      <h2>Histórico de temperatura, umidade e qualidade do ar</h2>
     </div>
     <div class="chart-card">
       <div class="chart-head">
@@ -651,6 +651,10 @@
     });
     const temps = history.map(item => item.temperatura);
     const hums = history.map(item => (typeof item.umidade === 'number' ? item.umidade : null));
+    // registros anteriores a instalacao do MQ-135 nao tem o campo aqi;
+    // por isso viram null e a linha simplesmente nao aparece nesse trecho
+    const aqis = history.map(item => (typeof item.aqi === 'number' ? item.aqi : null));
+    const temAqi = aqis.some(v => v !== null);
 
     currentHistoryLength = history.length;
     sub.textContent = `${history.length} ponto${history.length > 1 ? 's' : ''} no período`;
@@ -700,6 +704,21 @@
             borderWidth: 2,
             yAxisID: 'yHum',
           },
+          ...(temAqi ? [{
+            label: 'Qualidade do ar (AQI)',
+            data: aqis,
+            borderColor: '#e8a33d',
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.35,
+            pointRadius: pointRadius,
+            pointBackgroundColor: '#e8a33d',
+            pointHoverRadius: 5,
+            borderWidth: 2,
+            borderDash: [5, 3],
+            spanGaps: true,
+            yAxisID: 'yAqi',
+          }] : []),
         ],
       },
       options: {
@@ -727,7 +746,8 @@
             borderWidth: 1,
             callbacks: {
               label: (item) => {
-                const unidade = item.dataset.yAxisID === 'yTemp' ? '°C' : '%';
+                const eixo = item.dataset.yAxisID;
+                const unidade = eixo === 'yTemp' ? '°C' : (eixo === 'yHum' ? '%' : '');
                 return `${item.dataset.label}: ${item.parsed.y.toFixed(1)}${unidade}`;
               },
             },
@@ -760,6 +780,12 @@
           yHum: {
             position: 'right',
             ticks: { color: '#4fb88b', font: { family: 'IBM Plex Mono', size: 10.5 }, callback: (v) => Number(v).toFixed(1) + '%' },
+            grid: { display: false },
+          },
+          yAqi: {
+            position: 'right',
+            display: temAqi,
+            ticks: { color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10.5 }, callback: (v) => Math.round(v) },
             grid: { display: false },
           },
         },
